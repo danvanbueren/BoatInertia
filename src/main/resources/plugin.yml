@@ -1,0 +1,8 @@
+name: BoatInertia
+version: '${project.version}'
+main: danvb10.boatinertia.BoatInertia
+api-version: 1.18
+prefix: BoatInertia
+authors: [ danvb10 ]
+description: Higher fidelity control over boat movement characteristics
+website: https://github.com/danvanbueren
