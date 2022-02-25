@@ -1,2 +1,2 @@
 # BoatInertia
-A server-side plugin for Paper (Minecraft) which allows an admin to adjust to maximum speed of boats.
+A server-side plugin for Paper (Minecraft) which allows a server admin to adjust the maximum speed of boats.
