@@ -8,7 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -25,7 +25,7 @@ public final class BoatInertia extends JavaPlugin {
     int taskID;
 
     // Store active boats
-    public List<InertiaManager> activeManagers = new ArrayList<InertiaManager>();
+    public List<InertiaManager> activeManagers = new ArrayList<>();
 
     // Start up
     @Override
@@ -37,19 +37,15 @@ public final class BoatInertia extends JavaPlugin {
         loopRegisterPreviouslyActiveBoats();
 
         // For when players enter a boat
-        BoatListener listener = new BoatListener(this);
         getServer().getPluginManager().registerEvents(new BoatListener(this), this);
 
         // Every tick, manage active player boats
         taskID = Bukkit.getScheduler().scheduleSyncRepeatingTask(
                 this,
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        if(!activeManagers.isEmpty()) {
-                            for (InertiaManager manager: activeManagers) {
-                                manager.update();
-                            }
+                () -> {
+                    if (!activeManagers.isEmpty()) {
+                        for (InertiaManager manager : activeManagers) {
+                            manager.update();
                         }
                     }
                 },
@@ -67,7 +63,7 @@ public final class BoatInertia extends JavaPlugin {
     // Add all previously active boats to runnable's scope
     private void loopRegisterPreviouslyActiveBoats() {
         for (Player player : this.getServer().getOnlinePlayers()) {
-            if(player.getVehicle() != null && player.getVehicle() instanceof Boat) {
+            if (player.getVehicle() != null && player.getVehicle() instanceof Boat) {
                 Boat boat = (Boat) player.getVehicle();
                 registerBoat(boat);
             }
@@ -77,9 +73,7 @@ public final class BoatInertia extends JavaPlugin {
     // Add boat to runnable's scope
     public void registerBoat(Boat boat) {
         boolean foundSame = false;
-        for (int i = 0; i < activeManagers.size(); i++) {
-            InertiaManager manager = activeManagers.get(i);
-
+        for (InertiaManager manager : activeManagers) {
             if (manager.getBoat().getEntityId() == boat.getEntityId()) {
                 foundSame = true;
             }
@@ -101,6 +95,7 @@ public final class BoatInertia extends JavaPlugin {
         }
     }
 
+    // Initialize config
     private void configInit() {
         config.addDefault("max_speed_multiplier", 1);
         config.options().copyDefaults(true);
@@ -108,9 +103,10 @@ public final class BoatInertia extends JavaPlugin {
         writeReadMe();
     }
 
+    // Write custom readme file
     private void writeReadMe() {
         List<String> lines = Arrays.asList(
-                "============= BOAT INERTIA 1.0-SNAPSHOT =============",
+                "============= BOAT INERTIA 1.1-SNAPSHOT =============",
                 "---------- https://github.com/danvanbueren ----------",
                 "",
                 "Thank you for installing the BoatInertia plugin! I",
@@ -126,35 +122,20 @@ public final class BoatInertia extends JavaPlugin {
                 "- `max_speed_multiplier` will be set to `1` by defau-",
                 "lt, closely simulating Minecraft's default boat speed",
                 "of `0.4D`.",
-                "- `max_speed_multiplier` can only accept an integer,",
-                "so don't input anything other than an integer.",
-                "- `max_speed_multiplier` isn't perfectly scaled with",
-                "movement speed. For every whole number you add to the",
-                "value, movement speed will increase roughly . Sorry",
-                "for the bug.",
-                "",
-                "=========== MODERATELY HANDY SPEED CHART ============",
-                "- `max_speed_multiplier`:`1` => `0.4D` (Normal speed)",
-                "- `max_speed_multiplier`:`2` => `0.76D` (1.9x faster)",
-                "- `max_speed_multiplier`:`3` => `1.12D` (2.8x faster)",
-                "- `max_speed_multiplier`:`4` => `1.47D` (3.7x faster)",
-                "- `max_speed_multiplier`:`5` => `1.82D` (4.6x faster)",
-                "So on, so forth... and dont forget:",
-                "- `max_speed_multiplier`:`20` => `7.6D` ( LIGHTSPEED)",
-                "Any faster than that and the game is gonna get BUSTED",
                 "",
                 "Have fun :)",
                 "-dan"
-                );
+        );
         Path file = Paths.get(this.getDataFolder().getAbsolutePath() + "/readme.txt");
         try {
-            Files.write(file, lines, Charset.forName("UTF-8"));
+            Files.write(file, lines, StandardCharsets.UTF_8);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public int getMaxSpeedConfig() {
-        return config.getInt("max_speed_multiplier");
+    // Get config
+    public double getMaxSpeedConfig() {
+        return config.getDouble("max_speed_multiplier");
     }
 }
