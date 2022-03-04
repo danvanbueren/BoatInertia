@@ -1,6 +1,7 @@
 package danvb10.boatinertia;
 
 import danvb10.boatinertia.listeners.BoatListener;
+import danvb10.boatinertia.listeners.ClientSteerVehiclePacket;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Boat;
@@ -21,11 +22,11 @@ public final class BoatInertia extends JavaPlugin {
     // Config
     public FileConfiguration config = getConfig();
 
-    // Runnable reference
-    int taskID;
+    // Store data
+    public List<BoatMovementOverrider> overriders = new ArrayList<>();
 
-    // Store active boats
-    public List<InertiaManager> activeManagers = new ArrayList<>();
+    // Runnable reference
+    int runnable;
 
     // Start up
     @Override
@@ -33,19 +34,36 @@ public final class BoatInertia extends JavaPlugin {
         // Config
         configInit();
 
-        // For server reloads, when players are online and might be in boats already
-        loopRegisterPreviouslyActiveBoats();
+        // Listeners
+        registerListeners();
 
-        // For when players enter a boat
+        // Protect against reloads
+        onServerReload();
+
+        // Runnable
+        registerRunnable();
+    }
+
+    // Destroy the runnable
+    @Override
+    public void onDisable() {
+        Bukkit.getScheduler().cancelTask(runnable);
+    }
+
+    // Listen for packets & events
+    private void registerListeners() {
+        new ClientSteerVehiclePacket(this);
         getServer().getPluginManager().registerEvents(new BoatListener(this), this);
+    }
 
-        // Every tick, manage active player boats
-        taskID = Bukkit.getScheduler().scheduleSyncRepeatingTask(
+    // Every tick, run this
+    private void registerRunnable() {
+        runnable = Bukkit.getScheduler().scheduleSyncRepeatingTask(
                 this,
                 () -> {
-                    if (!activeManagers.isEmpty()) {
-                        for (InertiaManager manager : activeManagers) {
-                            manager.update();
+                    if (!overriders.isEmpty()) {
+                        for (BoatMovementOverrider bmo : overriders) {
+                            bmo.tick();
                         }
                     }
                 },
@@ -54,45 +72,33 @@ public final class BoatInertia extends JavaPlugin {
         );
     }
 
-    // Destroy the runnable
-    @Override
-    public void onDisable() {
-        Bukkit.getScheduler().cancelTask(taskID);
-    }
-
     // Add all previously active boats to runnable's scope
-    private void loopRegisterPreviouslyActiveBoats() {
+    private void onServerReload() {
         for (Player player : this.getServer().getOnlinePlayers()) {
             if (player.getVehicle() != null && player.getVehicle() instanceof Boat) {
                 Boat boat = (Boat) player.getVehicle();
-                registerBoat(boat);
+                trackBoat(boat);
             }
         }
     }
 
     // Add boat to runnable's scope
-    public void registerBoat(Boat boat) {
+    public void trackBoat(Boat boat) {
         boolean foundSame = false;
-        for (InertiaManager manager : activeManagers) {
-            if (manager.getBoat().getEntityId() == boat.getEntityId()) {
+        for (BoatMovementOverrider bmo : overriders) {
+            if (bmo.getBoat().getEntityId() == boat.getEntityId()) {
                 foundSame = true;
             }
         }
         if (!foundSame) {
-            activeManagers.add(new InertiaManager(boat, this));
+            overriders.add(new BoatMovementOverrider(boat, this));
         }
 
     }
 
     // Remove boat from runnable's scope
-    public void destructBoat(Boat boat) {
-        for (int i = 0; i < activeManagers.size(); i++) {
-            InertiaManager manager = activeManagers.get(i);
-
-            if (manager.getBoat().getEntityId() == boat.getEntityId()) {
-                activeManagers.remove(manager);
-            }
-        }
+    public void untrackBoat(Boat boat) {
+        overriders.removeIf(bmo -> bmo.getBoat().getEntityId() == boat.getEntityId());
     }
 
     // Initialize config
@@ -106,7 +112,7 @@ public final class BoatInertia extends JavaPlugin {
     // Write custom readme file
     private void writeReadMe() {
         List<String> lines = Arrays.asList(
-                "============= BOAT INERTIA 1.1-SNAPSHOT =============",
+                "============= BOAT INERTIA 1.2-SNAPSHOT =============",
                 "---------- https://github.com/danvanbueren ----------",
                 "",
                 "Thank you for installing the BoatInertia plugin! I",

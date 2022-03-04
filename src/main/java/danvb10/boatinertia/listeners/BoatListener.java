@@ -20,7 +20,7 @@ public class BoatListener implements Listener {
     public void onVehicleEnter(VehicleEnterEvent event) {
         if (event.getEntered() instanceof Player && event.getVehicle() instanceof Boat) {
             Boat boat = (Boat) event.getVehicle();
-            boatInertia.registerBoat(boat);
+            boatInertia.trackBoat(boat);
         }
     }
 
@@ -28,7 +28,7 @@ public class BoatListener implements Listener {
     public void onVehicleExit(VehicleExitEvent event) {
         if (event.getExited() instanceof Player && event.getVehicle() instanceof Boat) {
             Boat boat = (Boat) event.getVehicle();
-            boatInertia.destructBoat(boat);
+            boatInertia.untrackBoat(boat);
         }
     }
 }

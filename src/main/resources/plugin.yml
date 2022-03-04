@@ -6,3 +6,4 @@ prefix: BoatInertia
 authors: [ danvb10 ]
 description: Higher fidelity control over boat movement characteristics
 website: https://github.com/danvanbueren
+depend: [ ProtocolLib ]
